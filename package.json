@@ -1,0 +1,15 @@
+{
+  "name": "mk8_ui_assets_extractor",
+  "version": "1.0.0",
+  "description": "Extract UI related assets from Mario Kart 8 in different languages",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Pretendo Network, Rambo6Glaz",
+  "license": "ISC",
+  "dependencies": {
+    "msbt.js": "github:PretendoNetwork/msbt.js#master"
+  }
+}
