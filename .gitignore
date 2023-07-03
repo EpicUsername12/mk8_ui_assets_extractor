@@ -1,4 +1,4 @@
 ui/*
 node_modules
-assets
+public
 __pycache__

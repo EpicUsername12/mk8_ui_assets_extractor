@@ -10,6 +10,6 @@
   "author": "Pretendo Network, Rambo6Glaz",
   "license": "ISC",
   "dependencies": {
-    "msbt.js": "github:PretendoNetwork/msbt.js#master"
+    "msbt.js": "github:PretendoNetwork/msbt.js#5e8e0dd25afd6d018ac8c966b05335f2f68c9915"
   }
 }

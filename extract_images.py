@@ -6,7 +6,11 @@ import time
 import sys
 import addrlib
 
-os.makedirs('assets/icons/', exist_ok=True)
+os.makedirs('public/chara', exist_ok=True)
+os.makedirs('public/body', exist_ok=True)
+os.makedirs('public/tire', exist_ok=True)
+os.makedirs('public/glider', exist_ok=True)
+os.makedirs('public/compe_icon', exist_ok=True)
 
 formats = {
     0x00000000: 'GX2_SURFACE_FORMAT_INVALID',
@@ -436,9 +440,26 @@ def decompressDXT5(data, width, height):
     return bytes(output)
 
 
-def save_bflim(type: str, data: bytes):
+def transformRGB565(data, width, height):
+    output = bytearray(width * height * 4)
+
+    for y in range(height):
+        for x in range(width):
+            pos = (y * width + x) * 4
+            in_pos = (y * width + x) * 2
+            pixel = data[in_pos] | data[in_pos + 1] << 8
+
+            output[pos + 0] = int(((pixel & 0xF800) >> 11) / 0x1F * 0xFF)
+            output[pos + 1] = int(((pixel & 0x7E0) >> 5) / 0x3F * 0xFF)
+            output[pos + 2] = int((pixel & 0x1F) / 0x1F * 0xFF)
+            output[pos + 3] = 0xFF
+
+    return bytes(output)
+
+
+def save_bflim(type: str, data: bytes, folder: str):
     flim = readFLIM(data)
-    if flim.format != 0x41a and flim.format != 0x0035 and flim.format != 0x0433:  # RGBA8_SRGB | BC5_UNORM | BC3_UNORM
+    if flim.format != 0x041a and flim.format != 0x0035 and flim.format != 0x0433 and flim.format != 0x0008:  # RGBA8_SRGB | BC5_UNORM | BC3_UNORM | B5G6R5_UNORM
         raise ValueError("Unsupported format 0x%04x" % flim.format)
 
     result = addrlib.deswizzle(flim.width, flim.height, 1, flim.format, 0, 1, flim.surfOut.tileMode,
@@ -450,30 +471,33 @@ def save_bflim(type: str, data: bytes):
     if flim.format == 0x0433:
         result = decompressDXT5(result, flim.width, flim.height)
 
+    if flim.format == 0x0008:
+        result = transformRGB565(result, flim.width, flim.height)
+
     image = Image.new('RGBA', (flim.width, flim.height))
     for y in range(flim.height):
         for x in range(flim.width):
-            offset = (x + y*flim.width)*4
-            r, g, b, a = struct.unpack(">BBBB", result[offset:offset+4])
+            offset = (x + y * flim.width) * 4
+            r, g, b, a = struct.unpack(">BBBB", result[offset:offset + 4])
             image.putpixel((x, y), (r, g, b, a))
 
-    image.save('assets/icons/%s.png' % type)
+    image.save('public/%s/%s.png' % (folder, type))
     return data
 
 
 character_list = [
-    'Mario',        'Luigi',      'Peach',
-    'Daisy',       'Yoshi',      'Kinopio',
-    'Kinopico',    'Nokonoko',    'Koopa',
-    'DK',          'Wario',      'Waluigi',
-    'Rosetta',     'MetalMario', 'MetalPeach',
-    'Jugem',       'Heyho',      'BbMario',
-    'BbLuigi',     'BbPeach',    'BbDaisy',
-    'BbRosetta',   'Larry',      'Lemmy',
-    'Wendy',       'Ludwig',     'Iggy',
-    'Roy',         'Morton',     'Mii',
-    'TanukiMario', 'Link',       'AnimalBoyA',
-    'Shizue',      'CatPeach',   'HoneKoopa',
+    'Mario', 'Luigi', 'Peach',
+    'Daisy', 'Yoshi', 'Kinopio',
+    'Kinopico', 'Nokonoko', 'Koopa',
+    'DK', 'Wario', 'Waluigi',
+    'Rosetta', 'MetalMario', 'MetalPeach',
+    'Jugem', 'Heyho', 'BbMario',
+    'BbLuigi', 'BbPeach', 'BbDaisy',
+    'BbRosetta', 'Larry', 'Lemmy',
+    'Wendy', 'Ludwig', 'Iggy',
+    'Roy', 'Morton', 'Mii',
+    'TanukiMario', 'Link', 'AnimalBoyA',
+    'Shizue', 'CatPeach', 'HoneKoopa',
     'AnimalGirlA'
 ]
 
@@ -491,12 +515,39 @@ body_list = [
 ]
 
 tire_list = [
-    'Std', 'Big', 'Sml', 'Rng',
-    'Slk', 'Mtl', 'Btn', 'Ofr',
-    'Spg', 'Wod', 'Fun', 'Zst',
-    'Zbi', 'Zsm', 'Zrn', 'Zsl',
-    'Zof', 'Gld', 'Gla', 'Tri',
-    'Anm'
+    'T_Std', 'T_Big', 'T_Sml', 'T_Rng',
+    'T_Slk', 'T_Mtl', 'T_Btn', 'T_Ofr',
+    'T_Spg', 'T_Wod', 'T_Fun', 'T_Zst',
+    'T_Zbi', 'T_Zsm', 'T_Zrn', 'T_Zsl',
+    'T_Zof', 'T_Gld', 'T_Gla', 'T_Tri',
+    'T_Anm'
+]
+
+glider_list = [
+    'G_Std', 'G_Jgm', 'G_Wlo', 'G_Zng',
+    'G_Umb', 'G_Prc', 'G_Prf', 'G_Flw',
+    'G_Kpa', 'G_Spl', 'G_Ptv', 'G_Gld',
+    'G_Hyr', 'G_Pap',
+]
+
+compe_icon_list = [
+    'Ch_Mro', 'Ch_Lig', 'Ch_Pch', 'Ch_Dsy', 'Ch_Rst',
+    'Ch_MroM', 'Ch_Ysi0', 'Ch_Kno', 'Ch_Nok', 'Ch_Hyh0',
+    'Ch_Jgm', 'Ch_Knc', 'Ch_MroB', 'Ch_LigB', 'Ch_PchB',
+    'Ch_DsyB', 'Ch_RstB', 'Ch_PchG', 'Ch_Kop', 'Ch_Dkg',
+    'Ch_Wro', 'Ch_Wlg', 'Ch_Igy', 'Ch_Roy', 'Ch_Lmy',
+    'Ch_Lry', 'Ch_Wdy', 'Ch_Ldw', 'Ch_Mtn', 'Ch_Mii',
+    'It_Msh', 'It_Msh3', 'It_Kor', 'It_Kor3', 'It_KorR',
+    'It_KorR3', 'It_Bnn', 'It_Bnn3', 'It_Flw', 'It_Bom',
+    'It_Gso', 'It_MshP', 'It_Kil', 'It_Thn', 'It_Tgz',
+    'It_Str', 'It_Coin', 'It_Bmr', 'It_Pkn', 'It_SHorn',
+    'It_SP8', 'Kt_StdK', 'Kt_Ten', 'Kt_Ufo', 'Kt_Wld',
+    'Kt_StdB', 'Kt_Mgp', 'Kt_StdV', 'Cp_Msh', 'Cp_Flw',
+    'Cp_Str', 'Cp_Spc', 'Cp_Kor', 'Cp_Bnn', 'Cp_Knh',
+    'Cp_Thn', 'Cl_50', 'Cl_100', 'Cl_150', 'Cl_Mir',
+    'Sb_FMro', 'Sb_FLgi', 'Sb_FPch', 'Sb_FYsi', 'Sb_FKno',
+    'Sb_FKop', 'Sb_FWro', 'Ot_Bln', 'Ot_Hdl', 'Ot_Flag',
+    'Cl_200'
 ]
 
 menu_arc = open('ui/cmn/menu.szs', 'rb').read()
@@ -507,11 +558,21 @@ common_sarc = oead.Sarc(oead.yaz0.decompress(common_arc))
 
 question_mark = menu_sarc.get_file('timg/tc_edChara_Question^t.bflim')
 question_data = question_mark.data.tobytes()
-save_bflim("Invalid", question_data)
+save_bflim("Invalid", question_data, "chara")
 
 mii_icon = menu_sarc.get_file('timg/tc_Chara_Mii^l.bflim')
 mii_data = mii_icon.data.tobytes()
-save_bflim("Mii", mii_data)
+save_bflim("Mii", mii_data, "chara")
+
+for compe_icon in compe_icon_list:
+    file = menu_sarc.get_file('timg/tc_CI_%s^h.bflim' % compe_icon)
+    if not file:
+        raise ValueError("No file for competition icon %s" % compe_icon)
+    data = file.data.tobytes()
+
+    open("test.bin", "wb").write(data)
+    print("Saving image for competition icon:", compe_icon)
+    save_bflim(compe_icon, data, "compe_icon")
 
 for chara in character_list:
 
@@ -532,7 +593,7 @@ for chara in character_list:
     data = file.data.tobytes()
 
     print("Saving image for character:", old_chara)
-    save_bflim(old_chara, data)
+    save_bflim(old_chara, data, "chara")
 
 
 for body in body_list:
@@ -554,15 +615,28 @@ for body in body_list:
         data = file.data.tobytes()
 
     print("Saving image for kart body:", old_body)
-    save_bflim(old_body, data)
+    save_bflim(old_body, data, "body")
 
 
 for tire in tire_list:
-    tire = "T_" + tire
     file = menu_sarc.get_file('timg/tc_KP_%s^q.bflim' % tire)
     if not file:
         raise ValueError("No file for tire part %s" % tire)
     data = file.data.tobytes()
 
     print("Saving image for kart tire:", tire)
-    save_bflim(tire, data)
+    save_bflim(tire, data, "tire")
+
+for glider in glider_list:
+    if glider == 'G_Std':
+        data = open('ui/cmn/a_menu/timg/tc_KP_%s_Mro^q.bflim' % (glider), 'rb').read()
+    elif glider == 'G_Umb':
+        data = open('ui/cmn/a_menu/timg/tc_KP_%s_00^q.bflim' % (glider), 'rb').read()
+    else:
+        file = menu_sarc.get_file('timg/tc_KP_%s^q.bflim' % glider)
+        if not file:
+            raise ValueError("No file for glider part %s" % glider)
+        data = file.data.tobytes()
+
+    print("Saving image for kart glider:", glider)
+    save_bflim(glider, data, "glider")
