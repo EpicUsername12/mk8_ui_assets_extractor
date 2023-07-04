@@ -6,11 +6,11 @@ import time
 import sys
 import addrlib
 
-os.makedirs('public/chara', exist_ok=True)
-os.makedirs('public/body', exist_ok=True)
-os.makedirs('public/tire', exist_ok=True)
-os.makedirs('public/glider', exist_ok=True)
-os.makedirs('public/compe_icon', exist_ok=True)
+os.makedirs('assets/chara', exist_ok=True)
+os.makedirs('assets/body', exist_ok=True)
+os.makedirs('assets/tire', exist_ok=True)
+os.makedirs('assets/glider', exist_ok=True)
+os.makedirs('assets/compe_icon', exist_ok=True)
 
 formats = {
     0x00000000: 'GX2_SURFACE_FORMAT_INVALID',
@@ -481,7 +481,7 @@ def save_bflim(type: str, data: bytes, folder: str):
             r, g, b, a = struct.unpack(">BBBB", result[offset:offset + 4])
             image.putpixel((x, y), (r, g, b, a))
 
-    image.save('public/%s/%s.png' % (folder, type))
+    image.save('assets/%s/%s.png' % (folder, type))
     return data
 
 

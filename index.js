@@ -171,16 +171,13 @@ Object.keys(languages).forEach((language) => {
 		lang_gliders[name] = get_msg_by_id(text_id);
 	});
 
-	if (!fs.existsSync("public/")) {
-		fs.mkdirSync("public/");
+	if (!fs.existsSync("locales/")) {
+		fs.mkdirSync("locales/");
 	}
 
-	if (!fs.existsSync("public/locales")) {
-		fs.mkdirSync("public/locales");
-	}
 
 	fs.writeFileSync(
-		`public/locales/${language}.json`,
+		`locales/${language}.json`,
 		JSON.stringify({ ...lang_chara, ...lang_body, ...lang_tire, ...lang_gliders }, undefined, 4)
 	);
 });
