@@ -10,3 +10,7 @@
 - `npm install`
 - `python -m pip install oead`
 - `python -m pip install Pillow`
+
+## Credits
+
+Massive thanks to @aboood40091 for BFLIM-extractor and scripts to manage .BFLIM files!
