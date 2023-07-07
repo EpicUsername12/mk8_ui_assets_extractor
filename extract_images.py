@@ -570,7 +570,6 @@ for compe_icon in compe_icon_list:
         raise ValueError("No file for competition icon %s" % compe_icon)
     data = file.data.tobytes()
 
-    open("test.bin", "wb").write(data)
     print("Saving image for competition icon:", compe_icon)
     save_bflim(compe_icon, data, "compe_icon")
 
