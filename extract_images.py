@@ -11,6 +11,8 @@ os.makedirs('assets/body', exist_ok=True)
 os.makedirs('assets/tire', exist_ok=True)
 os.makedirs('assets/glider', exist_ok=True)
 os.makedirs('assets/compe_icon', exist_ok=True)
+os.makedirs('assets/cup', exist_ok=True)
+os.makedirs('assets/track', exist_ok=True)
 
 formats = {
     0x00000000: 'GX2_SURFACE_FORMAT_INVALID',
@@ -333,6 +335,10 @@ def fetch_2d_texel_rg_bc5(srcRowStride, pixdata, i, j):
     return RCOMP, GCOMP
 
 
+def EXP5TO8G(packedcol):
+    return (((packedcol) >> 5) & 0xf8) | (((packedcol) >> 10) & 0x07)
+
+
 def EXP5TO8R(packedcol):
     return (((packedcol) >> 8) & 0xf8) | (((packedcol) >> 13) & 0x07)
 
@@ -397,6 +403,13 @@ def dxt135_decode_imageblock(pixdata, img_block_src, i, j, dxt_type):
     return ACOMP, RCOMP, GCOMP, BCOMP
 
 
+def fetch_2d_texel_rgba_dxt1(srcRowStride, pixdata, i, j):
+    blksrc = ((srcRowStride + 3) // 4 * (j // 4) + (i // 4)) * 8
+    ACOMP, RCOMP, GCOMP, BCOMP = dxt135_decode_imageblock(pixdata, blksrc, i & 3, j & 3, 1)
+
+    return RCOMP, GCOMP, BCOMP, ACOMP
+
+
 def fetch_2d_texel_rgba_dxt5(srcRowStride, pixdata, i, j):
     blksrc = ((srcRowStride + 3) // 4 * (j // 4) + (i // 4)) * 16
 
@@ -419,6 +432,23 @@ def decompressBC5(data, width, height):
             output[pos + 1] = R
             output[pos + 2] = R
             output[pos + 3] = G
+
+    return bytes(output)
+
+
+def decompressBC1(data, width, height):
+    output = bytearray(width * height * 4)
+
+    for y in range(height):
+        for x in range(width):
+            R, G, B, A = fetch_2d_texel_rgba_dxt1(width, data, x, y)
+
+            pos = (y * width + x) * 4
+
+            output[pos + 0] = R
+            output[pos + 1] = G
+            output[pos + 2] = B
+            output[pos + 3] = A
 
     return bytes(output)
 
@@ -459,7 +489,8 @@ def transformRGB565(data, width, height):
 
 def save_bflim(type: str, data: bytes, folder: str):
     flim = readFLIM(data)
-    if flim.format != 0x041a and flim.format != 0x0035 and flim.format != 0x0433 and flim.format != 0x0008:  # RGBA8_SRGB | BC5_UNORM | BC3_UNORM | B5G6R5_UNORM
+    # RGBA8_SRGB | BC5_UNORM | BC3_UNORM | B5G6R5_UNORM | BC1_UNORM
+    if flim.format != 0x041a and flim.format != 0x0035 and flim.format != 0x0433 and flim.format != 0x0008 and flim.format != 0x0431:
         raise ValueError("Unsupported format 0x%04x" % flim.format)
 
     result = addrlib.deswizzle(flim.width, flim.height, 1, flim.format, 0, 1, flim.surfOut.tileMode,
@@ -471,6 +502,9 @@ def save_bflim(type: str, data: bytes, folder: str):
     if flim.format == 0x0433:
         result = decompressDXT5(result, flim.width, flim.height)
 
+    if flim.format == 0x0431:
+        result = decompressBC1(result, flim.width, flim.height)
+
     if flim.format == 0x0008:
         result = transformRGB565(result, flim.width, flim.height)
 
@@ -480,6 +514,9 @@ def save_bflim(type: str, data: bytes, folder: str):
             offset = (x + y * flim.width) * 4
             r, g, b, a = struct.unpack(">BBBB", result[offset:offset + 4])
             image.putpixel((x, y), (r, g, b, a))
+
+    if folder == "track":
+        image = image.crop((8, 29, 296, 191))
 
     image.save('assets/%s/%s.png' % (folder, type))
     return data
@@ -550,6 +587,24 @@ compe_icon_list = [
     'Cl_200'
 ]
 
+cup_internal_names = ['Mushroom', 'Flower', 'Star', 'Special',
+                      'Shell', 'Banana', 'Leaf', 'Thunder',
+                      'DLC02', 'DLC03', 'DLC04', 'DLC05']
+
+track_internal_names = ['Gu_FirstCircuit', 'Gu_WaterPark', 'Gu_Cake', 'Gu_DossunIseki',
+                        'Gu_MarioCircuit', 'Gu_City', 'Gu_HorrorHouse', 'Gu_Expert',
+                        'Gu_Airport', 'Gu_Ocean', 'Gu_Techno', 'Gu_SnowMountain',
+                        'Gu_Cloud', 'Gu_Desert', 'Gu_BowserCastle', 'Gu_RainbowRoad',
+                        'Gwii_MooMooMeadows', 'Gagb_MarioCircuit', 'Gds_PukupukuBeach', 'G64_KinopioHighway',
+                        'Ggc_DryDryDesert', 'Gsfc_DonutsPlain3', 'G64_PeachCircuit', 'G3ds_DKJungle',
+                        'Gds_WarioStadium', 'Ggc_SherbetLand', 'G3ds_MusicPark', 'G64_YoshiValley',
+                        'Gds_TickTockClock', 'G3ds_PackunSlider', 'Gwii_GrumbleVolcano', 'G64_RainbowRoad',
+                        'Dgc_YoshiCircuit', 'Du_ExciteBike', 'Du_DragonRoad', 'Du_MuteCity',
+                        'Dwii_WariosMine', 'Dsfc_RainbowRoad', 'Du_IcePark', 'Du_Hyrule',
+                        'Dgc_BabyPark', 'Dagb_CheeseLand', 'Du_Woods', 'Du_Animal',
+                        'D3ds_NeoBowserCity', 'Dagb_RibbonRoad', 'Du_Metro', 'Du_BigBlue']
+
+
 menu_arc = open('ui/cmn/menu.szs', 'rb').read()
 menu_sarc = oead.Sarc(oead.yaz0.decompress(menu_arc))
 
@@ -563,6 +618,25 @@ save_bflim("Invalid", question_data, "chara")
 mii_icon = menu_sarc.get_file('timg/tc_Chara_Mii^l.bflim')
 mii_data = mii_icon.data.tobytes()
 save_bflim("Mii", mii_data, "chara")
+
+for cup in cup_internal_names:
+    file = menu_sarc.get_file('timg/ym_CupIcon%s^h.bflim' % cup)
+    if not file:
+        raise ValueError("No file for cup %s" % cup)
+    data = file.data.tobytes()
+
+    print("Saving image for cup:", cup)
+    save_bflim(cup, data, "cup")
+
+
+for track in track_internal_names:
+    file = menu_sarc.get_file('timg/ym_CoursePict_%s_00^o.bflim' % track)
+    if not file:
+        raise ValueError("No file for track %s" % track)
+    data = file.data.tobytes()
+
+    print("Saving image for track:", track)
+    save_bflim(track, data, "track")
 
 for compe_icon in compe_icon_list:
     file = menu_sarc.get_file('timg/tc_CI_%s^h.bflim' % compe_icon)
